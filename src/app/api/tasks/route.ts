@@ -83,3 +83,36 @@ export async function PATCH(request: Request) {
     );
   }
 }
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = parseInt(searchParams.get('id') || '');
+
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'Valid ID is required' }, { status: 400 });
+    }
+
+    // Read the existing tasks
+    const fileContent = await fs.readFile(dataFilePath, 'utf8');
+    const data = JSON.parse(fileContent);
+    const tasks = data.tasks || [];
+
+    // Filter out the task
+    const filteredTasks = tasks.filter((t: any) => t.id !== id);
+
+    if (tasks.length === filteredTasks.length) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
+    // Write the updated array back to tasks.json
+    await fs.writeFile(dataFilePath, JSON.stringify({ tasks: filteredTasks }, null, 4), 'utf8');
+
+    return NextResponse.json({ message: 'Task deleted successfully' }, { status: 200 });
+  } catch (error) {
+    console.error('Error deleting task from tasks.json:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete task' },
+      { status: 500 }
+    );
+  }
+}

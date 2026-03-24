@@ -60,16 +60,23 @@ export default function TasksPage() {
     }
   };
 
-  const todoCount = tasks.filter(t => !t.completed).length;
-  const completedCount = tasks.filter(t => t.completed).length;
-  const overdueCount = tasks.filter(t => {
-    if (t.completed) return false;
-    const due = new Date(t.dueDate);
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    due.setHours(0,0,0,0);
-    return due < today;
-  }).length;
+  const handleDeleteTask = async (id: number) => {
+    // Optimistic UI update
+    setTasks(prev => prev.filter(t => t.id !== id));
+    
+    try {
+      const response = await fetch(`/api/tasks?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete task');
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      // Revert if error
+      const response = await fetch('/api/tasks');
+      const data = await response.json();
+      setTasks(data.tasks || []);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 p-6 sm:p-10 text-slate-200 selection:bg-indigo-500/30 font-sans relative overflow-hidden flex flex-col items-center">
@@ -104,36 +111,36 @@ export default function TasksPage() {
           </Link>
         </header>
 
-        {/* Filters/Stats */}
+        {/* Dashboard Cards (Requested to remove numbers) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between backdrop-blur-md hover:bg-slate-800/50 transition-colors cursor-default">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-slate-400 font-medium uppercase tracking-wider">Overdue</p>
-              <div className="h-10 w-10 rounded-full bg-red-400/10 flex items-center justify-center text-red-400 shadow-inner">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              </div>
+          {/* Overdue */}
+          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 flex items-center justify-between backdrop-blur-md hover:bg-slate-800/50 transition-colors cursor-default">
+            <div>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mb-1">Overdue</p>
             </div>
-            <p className="text-3xl font-bold text-red-400">{loading ? '-' : overdueCount}</p>
+            <div className="h-10 w-10 rounded-full bg-red-400/10 flex items-center justify-center text-red-500/80 shadow-inner">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
           </div>
           
-          <div className="bg-slate-900/60 border border-indigo-500/30 rounded-2xl p-6 flex flex-col justify-between backdrop-blur-md hover:bg-slate-800/80 transition-colors shadow-[0_0_15px_rgba(79,70,229,0.1)] cursor-default">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-indigo-400 font-medium uppercase tracking-wider">To Do</p>
-              <div className="h-10 w-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 shadow-inner">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-              </div>
+          {/* To Do */}
+          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 flex items-center justify-between backdrop-blur-md hover:bg-slate-800/50 transition-colors cursor-default">
+            <div>
+              <p className="text-xs text-indigo-400 font-bold uppercase tracking-[0.2em] mb-1">To Do</p>
             </div>
-            <p className="text-3xl font-bold text-white">{loading ? '-' : todoCount}</p>
+            <div className="h-10 w-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 shadow-inner">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            </div>
           </div>
           
-          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between backdrop-blur-md hover:bg-slate-800/50 transition-colors cursor-default">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-slate-400 font-medium uppercase tracking-wider">Completed</p>
-              <div className="h-10 w-10 rounded-full bg-green-400/10 flex items-center justify-center text-green-400 shadow-inner">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-              </div>
+          {/* Completed */}
+          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 flex items-center justify-between backdrop-blur-md hover:bg-slate-800/50 transition-colors cursor-default">
+            <div>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em] mb-1">Completed</p>
             </div>
-            <p className="text-3xl font-bold text-green-400">{loading ? '-' : completedCount}</p>
+            <div className="h-10 w-10 rounded-full bg-green-400/10 flex items-center justify-center text-green-500/80 shadow-inner">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
           </div>
         </div>
 
@@ -173,8 +180,12 @@ export default function TasksPage() {
                       {statusText}
                     </span>
 
-                    <button className="text-slate-500 hover:text-slate-300 transition-colors p-1">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                    <button 
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="text-slate-500 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-400/10"
+                      title="Delete task"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
                   </div>
 
