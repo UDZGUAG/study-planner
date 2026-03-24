@@ -53,3 +53,33 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const { id, completed } = await request.json();
+    
+    // Read the existing tasks
+    const fileContent = await fs.readFile(dataFilePath, 'utf8');
+    const data = JSON.parse(fileContent);
+    const tasks = data.tasks || [];
+    
+    // Find and update the task
+    const taskIndex = tasks.findIndex((t: any) => t.id === id);
+    if (taskIndex === -1) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+    
+    tasks[taskIndex].completed = completed;
+    
+    // Write the updated array back to tasks.json
+    await fs.writeFile(dataFilePath, JSON.stringify({ tasks }, null, 4), 'utf8');
+    
+    return NextResponse.json(tasks[taskIndex], { status: 200 });
+  } catch (error) {
+    console.error('Error updating task in tasks.json:', error);
+    return NextResponse.json(
+      { error: 'Failed to update task' },
+      { status: 500 }
+    );
+  }
+}

@@ -40,6 +40,26 @@ export default function TasksPage() {
     }
   };
 
+  const toggleTaskCompletion = async (id: number, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: newStatus } : t));
+    
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, completed: newStatus }),
+      });
+      if (!response.ok) throw new Error('Failed to update status');
+    } catch (error) {
+      console.error('Failed to update task status:', error);
+      // Revert from server if failed
+      const response = await fetch('/api/tasks');
+      const data = await response.json();
+      setTasks(data.tasks || []);
+    }
+  };
+
   const todoCount = tasks.filter(t => !t.completed).length;
   const completedCount = tasks.filter(t => t.completed).length;
   const overdueCount = tasks.filter(t => {
@@ -159,7 +179,9 @@ export default function TasksPage() {
                   </div>
 
                   <div className="flex-grow">
-                    <h3 className="text-xl text-slate-100 font-bold mb-2 group-hover:text-indigo-300 transition-colors leading-snug">{task.title}</h3>
+                    <h3 className={`text-xl font-bold mb-2 transition-colors leading-snug ${
+                      task.completed ? 'text-slate-500 line-through' : 'text-slate-100 group-hover:text-indigo-300'
+                    }`}>{task.title}</h3>
                     
                     <div className="flex items-center space-x-2 text-sm text-slate-400 mb-6 font-medium">
                       <span className={`w-2 h-2 rounded-full ${color} shadow-sm`}></span>
@@ -173,8 +195,10 @@ export default function TasksPage() {
                       <span>{task.dueDate}</span>
                     </div>
                     
-                    <button className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                      task.completed ? 'bg-green-500/20 text-green-400' : 'bg-slate-800 text-slate-500 hover:bg-indigo-500 hover:text-white'
+                    <button 
+                      onClick={() => toggleTaskCompletion(task.id, task.completed)}
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors z-10 relative cursor-pointer ${
+                      task.completed ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-slate-800 text-slate-500 hover:bg-indigo-500 hover:text-white'
                     }`}>
                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path></svg>
                     </button>
